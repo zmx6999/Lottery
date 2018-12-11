@@ -1,50 +1,51 @@
-pragma solidity ^0.4.4;
-
+pragma solidity ^0.4.24;
 
 contract Lottery {
-    address manager;
-    address[] players;
+    address public manager;
+    address[] public players;
+    address public winner;
+    uint public round=1;
+    uint public unit;
 
-    function Lottery() {
+    constructor(uint _unit) public {
         manager=msg.sender;
+        unit=_unit;
     }
-    
-    function enter() payable public {
-        require(msg.sender!=manager);
-        require(msg.value==1 ether);
-        players.push(msg.sender);
-    }
-    
-    function random() view private returns (uint x) {
-        x=uint(keccak256(block.difficulty,now,players));
-    }
-    
-    function pickWinner() public onlyManager returns (address winner) {
-        if(players.length > 0) {
-            uint i=random()%players.length;
-            if(this.balance > 0) players[i].transfer(this.balance);
-            winner=players[i];
-            players.length=0;
-        }
-        winner=0;
-    }
-    
+
     modifier onlyManager() {
-        require(msg.sender==manager);
+        require(manager==msg.sender);
         _;
     }
-    
-    function returnMoney() public onlyManager {
-        for(uint i=0; i<players.length; i++) {
-            players[i].transfer(1 ether);
-        }
+
+    function play() payable public {
+        require(msg.sender!=manager);
+        require(msg.value==unit);
+        players.push(msg.sender);
     }
-    
-    function getPlayers() view public returns (address[] _players) {
-        _players=players;
+
+    function draw() public onlyManager {
+        require(players.length>0);
+        uint nonce=uint(sha256(block.difficulty,now,players.length));
+        uint i=nonce%players.length;
+        winner=players[i];
+        winner.transfer(address(this).balance);
+        round++;
+        delete players;
     }
-    
-    function getBalance() view public returns (uint bal) {
-        bal=this.balance;
+
+    function drawback() public onlyManager {
+        require(players.length>0);
+        for(uint i=0;i<players.length;i++)
+            players[i].transfer(unit);
+        round++;
+        delete players;
+    }
+
+    function getBalance() public view returns (uint) {
+        return address(this).balance;
+    }
+
+    function getPlayersCount() public view returns (uint) {
+        return players.length;
     }
 }
