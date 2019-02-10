@@ -1,51 +1,50 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.4.0;
 
 contract Lottery {
     address public manager;
     address[] public players;
+    uint public round;
     address public winner;
-    uint public round=1;
-    uint public unit;
+    uint public betMoney;
 
-    constructor(uint _unit) public {
+    constructor(uint _betMoney) {
         manager=msg.sender;
-        unit=_unit;
+        betMoney=_betMoney;
     }
 
     modifier onlyManager() {
-        require(manager==msg.sender);
+        require(msg.sender==manager);
         _;
     }
 
     function play() payable public {
         require(msg.sender!=manager);
-        require(msg.value==unit);
+        require(msg.value==betMoney);
         players.push(msg.sender);
     }
 
     function draw() public onlyManager {
         require(players.length>0);
-        uint nonce=uint(sha256(block.difficulty,now,players.length));
-        uint i=nonce%players.length;
+        uint i=uint(sha256(abi.encodePacked(block.difficulty,now,players.length)));
+        i=i%players.length;
         winner=players[i];
         winner.transfer(address(this).balance);
-        round++;
         delete players;
+        round+=1;
     }
 
     function drawback() public onlyManager {
         require(players.length>0);
-        for(uint i=0;i<players.length;i++)
-            players[i].transfer(unit);
-        round++;
+        for(uint i=0;i<players.length;i++) players[i].transfer(betMoney);
         delete players;
-    }
-
-    function getBalance() public view returns (uint) {
-        return address(this).balance;
+        round+=1;
     }
 
     function getPlayersCount() public view returns (uint) {
         return players.length;
+    }
+
+    function getBalance() public view returns (uint) {
+        return address(this).balance;
     }
 }

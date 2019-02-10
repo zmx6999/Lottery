@@ -1,7 +1,7 @@
-import React, { Component } from 'react';
+import React, { Component } from 'react'
 import CardExampleCard from "./display/ui"
-import lottery from "./eth/Lottery"
-import web3 from "./utils/initweb3"
+import Lottery from './eth/Lottery'
+import web3 from './utils/initweb3'
 
 class App extends Component {
     constructor() {
@@ -10,66 +10,74 @@ class App extends Component {
     }
 
     async componentWillMount() {
-        let accounts=await web3.eth.getAccounts()
-        let manager=await lottery.methods.manager().call()
-        let playerCount=await lottery.methods.getPlayersCount().call()
-        let amount=await lottery.methods.getBalance().call()
-        let round=await lottery.methods.round().call()
+        let accounts = await web3.eth.getAccounts()
+        let currentAccount = accounts[0]
+        let manager = await Lottery.methods.manager().call()
+        let playerCount = await Lottery.methods.getPlayersCount().call()
+        let round = await Lottery.methods.round().call()
+        round = parseInt(round)+1
+        let amount = await Lottery.methods.getBalance().call()
+        amount = web3.utils.fromWei(amount,'ether')
+        let showPlay = currentAccount == manager? 'none': 'inline'
+        let showDraw = currentAccount == manager? 'inline': 'none'
         this.setState({
-            currentAccount:accounts[0],
-            manager:manager,
-            playerCount:playerCount,
-            amount:web3.utils.fromWei(amount,"ether"),
-            round:round,
-            showPlay:accounts[0]===manager?"none":"inline",
-            showDraw:accounts[0]===manager?"inline":"none"
+            currentAccount,
+            manager,
+            playerCount,
+            round,
+            amount,
+            showDraw,
+            showPlay
         })
     }
 
-    play=async () => {
+    play = async () => {
         this.setState({isPlaying:true})
         try {
-            let accounts=await web3.eth.getAccounts()
-            await lottery.methods.play().send({from:accounts[0],value:10**18})
-            alert("success")
+            let accounts = await web3.eth.getAccounts()
+            let currentAccount = accounts[2]
+            await Lottery.methods.play().send({from:currentAccount,gas:3000000,value:web3.utils.toWei('1','ether')})
+            alert('success')
             this.setState({isPlaying:false})
             window.location.reload(true)
         } catch (e) {
-            alert("fail")
             this.setState({isPlaying:false})
+            console.log(e)
         }
     }
 
-    draw=async () => {
+    draw = async () => {
         this.setState({isDrawing:true})
         try {
-            let accounts=await web3.eth.getAccounts()
-            await lottery.methods.draw().send({from:accounts[0]})
-            let winner=await lottery.methods.winner().call()
-            alert("success!winner is "+winner)
+            let accounts = await web3.eth.getAccounts()
+            let currentAccount = accounts[0]
+            await Lottery.methods.draw().send({from:currentAccount,gas:3000000})
+            let winner = await Lottery.methods.winner().call()
+            alert('Success!Winner is '+winner)
             this.setState({isDrawing:false})
             window.location.reload(true)
         } catch (e) {
-            alert("fail")
             this.setState({isDrawing:false})
+            console.log(e)
         }
     }
 
-    drawback=async () => {
+    drawback = async () => {
         this.setState({isDrawingback:true})
         try {
-            let accounts=await web3.eth.getAccounts()
-            await lottery.methods.drawback().send({from:accounts[0]})
-            alert("success")
+            let accounts = await web3.eth.getAccounts()
+            let currentAccount = accounts[0]
+            await Lottery.methods.drawback().send({from:currentAccount,gas:3000000})
+            alert('success')
             this.setState({isDrawingback:false})
             window.location.reload(true)
         } catch (e) {
-            alert("fail")
             this.setState({isDrawingback:false})
+            console.log(e)
         }
     }
 
-    isDisabled=() => {
+    isDisabled = () => {
       return this.state.isPlaying || this.state.isDrawing || this.state.isDrawingback
     }
 
